@@ -1,0 +1,8 @@
+{
+  "name": "Remix: PropFind",
+  "description": "Premium real estate listing marketplace to buy, rent, or lease residential, commercial, and new developments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
