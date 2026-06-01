@@ -1921,7 +1921,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : viewMode === "grid" || viewMode === "map" ? (
               /* Master Grid Catalog presentation (Grid Only) */
               <div
                 className="space-y-4 animate-entrance-3d-effect"
@@ -2155,7 +2155,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
 
             {/* Side note workspace block for favorited items (UE-01) */}
             {userProfile.savedProperties.length > 0 && (
