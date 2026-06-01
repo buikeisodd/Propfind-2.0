@@ -7,9 +7,11 @@ export interface Agent {
   email: string;
   phone: string;
   isVerified: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified';
   rating: number;
   reviewCount: number;
   areasServed: string[];
+  specialties?: string[];
   performance: {
     propertiesSold: number;
     avgDaysOnMarket: number;
@@ -109,6 +111,8 @@ export interface UserProfile {
   phone: string;
   photo: string;
   role: 'seeker' | 'owner' | 'agent' | 'admin';
+  bio?: string; // New field for profile
+  verificationStatus?: 'unverified' | 'pending' | 'verified'; // Track if user has requested verification
   savedProperties: string[]; // property IDs
   recentSearches: string[];
   notesOnProperties: Record<string, string>; // property ID -> personal note mapping

@@ -52,7 +52,7 @@ export default function AuthModal({
   onAuthenticate,
   initialMode = "signin",
 }: AuthModalProps) {
-  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">(initialMode);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -74,6 +74,16 @@ export default function AuthModal({
       setError("Please fill in your email address.");
       return;
     }
+    if (mode === "forgot-password") {
+      if (!formData.securityAnswer) {
+        setError("Please answer your security challenge.");
+        return;
+      }
+      alert("Password reset instructions have been dispatched securely to your email address.");
+      setMode("signin");
+      return;
+    }
+
     if (!formData.password) {
       setError("Please enter your account password.");
       return;
@@ -155,15 +165,18 @@ export default function AuthModal({
           <p className="text-xs text-slate-400">
             {mode === "signin"
               ? "Provide your security credentials to access listed properties"
+              : mode === "forgot-password"
+              ? "Verify your identity to regain secure access"
               : "Establish a cryptographic sandbox registry profile (anti-scam enforced)"}
           </p>
         </div>
 
         {/* Short-cuts selection box */}
-        <div
-          className="p-3 bg-slate-950 border border-slate-850 rounded-xl space-y-2"
-          id="shortcut-box"
-        >
+        {mode !== "forgot-password" && (
+          <div
+            className="p-3 bg-slate-950 border border-slate-850 rounded-xl space-y-2"
+            id="shortcut-box"
+          >
           <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block font-mono">
             Sandbox Quick Sign-In Profiles:
           </span>
@@ -182,15 +195,18 @@ export default function AuthModal({
               </button>
             ))}
           </div>
-        </div>
+          </div>
+        )}
 
-        <div className="relative flex py-1 items-center" id="or-separator">
-          <div className="flex-grow border-t border-slate-850"></div>
-          <span className="flex-shrink mx-3 text-[9px] font-mono text-slate-600 uppercase">
-            Or Key In Details
-          </span>
-          <div className="flex-grow border-t border-slate-850"></div>
-        </div>
+        {mode !== "forgot-password" && (
+          <div className="relative flex py-1 items-center" id="or-separator">
+            <div className="flex-grow border-t border-slate-850"></div>
+            <span className="flex-shrink mx-3 text-[9px] font-mono text-slate-600 uppercase">
+              Or Key In Details
+            </span>
+            <div className="flex-grow border-t border-slate-850"></div>
+          </div>
+        )}
 
         {error && (
           <div
@@ -247,24 +263,65 @@ export default function AuthModal({
             </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">
-              Account Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={formData.password}
+          {mode !== "forgot-password" && (
+            <div>
+              <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1 flex justify-between">
+                <span>Account Password</span>
+                {mode === "signin" && (
+                  <button type="button" onClick={() => { setMode("forgot-password"); setError(""); }} className="text-blue-400 hover:text-blue-300 transition-colors">
+                    Forgot Password?
+                  </button>
+                )}
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-600" />
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9.5 pr-3 py-2 text-xs placeholder-slate-700 focus:outline-none focus:border-blue-500 text-white font-mono"
+                />
+              </div>
+            </div>
+          )}
+
+          {mode === "forgot-password" && (
+            <div className="space-y-2 pt-2 border-t border-slate-850">
+              <label className="block text-[10px] text-slate-400 font-bold uppercase mb-0.5">
+                Security Challenge to Reset Password
+              </label>
+              <select
+                value={formData.securityQuestion}
                 onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
+                  setFormData({
+                    ...formData,
+                    securityQuestion: e.target.value,
+                  })
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9.5 pr-3 py-2 text-xs placeholder-slate-700 focus:outline-none focus:border-blue-500 text-white font-mono"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl text-xs px-2 py-1.5 focus:outline-none focus:border-blue-500 text-white cursor-pointer"
+              >
+                <option value="first_pet">Name of your first pet?</option>
+                <option value="mother_maiden">Mother's maiden name?</option>
+                <option value="first_car">Model of your first personal automobile?</option>
+                <option value="birth_city">City in which you purchased your first deed?</option>
+              </select>
+
+              <input
+                type="text"
+                required
+                placeholder="Your secure answer..."
+                value={formData.securityAnswer}
+                onChange={(e) =>
+                  setFormData({ ...formData, securityAnswer: e.target.value })
+                }
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs placeholder-slate-750 focus:outline-none focus:border-blue-500 text-white font-medium"
               />
             </div>
-          </div>
+          )}
 
           {/* Demographic & Verification checks - ENFORCED SOLELY on SignUp Mode (US-08 compliance) */}
           {mode === "signup" && (
@@ -400,6 +457,8 @@ export default function AuthModal({
           >
             {mode === "signin"
               ? "Verify Secret Entry"
+              : mode === "forgot-password"
+              ? "Verify & Reset Password"
               : "Register Secure Profile"}
           </button>
         </form>
@@ -420,6 +479,19 @@ export default function AuthModal({
                 className="text-blue-400 hover:underline cursor-pointer font-bold"
               >
                 Register Account Passport
+              </span>
+            </p>
+          ) : mode === "forgot-password" ? (
+            <p>
+              Remember your password?{" "}
+              <span
+                onClick={() => {
+                  setMode("signin");
+                  setError("");
+                }}
+                className="text-blue-400 hover:underline cursor-pointer font-bold"
+              >
+                Back to Sign In
               </span>
             </p>
           ) : (

@@ -13,6 +13,7 @@ export const INITIAL_AGENTS: Agent[] = [
     rating: 4.8,
     reviewCount: 24,
     areasServed: ['Downtown Core', 'Marina Heights'],
+    specialties: ['Luxury Condos', 'Waterfront Properties', 'Investment Portfolios'],
     performance: {
       propertiesSold: 8,
       avgDaysOnMarket: 22,
@@ -31,6 +32,7 @@ export const INITIAL_AGENTS: Agent[] = [
     rating: 4.9,
     reviewCount: 142,
     areasServed: ['Marina Heights', 'Downtown Core', 'Bayview Ridge'],
+    specialties: ['First-Time Buyers', 'Relocations', 'High-Rise Apartments'],
     performance: {
       propertiesSold: 184,
       avgDaysOnMarket: 18,
@@ -49,6 +51,7 @@ export const INITIAL_AGENTS: Agent[] = [
     rating: 4.8,
     reviewCount: 96,
     areasServed: ['Pine Crest', 'Canyon View', 'Oakridge Estates'],
+    specialties: ['Suburban Homes', 'Family Estates', 'Eco-Friendly Properties'],
     performance: {
       propertiesSold: 112,
       avgDaysOnMarket: 24,
@@ -67,6 +70,7 @@ export const INITIAL_AGENTS: Agent[] = [
     rating: 4.7,
     reviewCount: 68,
     areasServed: ['Downtown Core', 'Industrial East', 'Commercial District'],
+    specialties: ['Commercial Leasing', 'Office Spaces', 'Retail Lots'],
     performance: {
       propertiesSold: 75,
       avgDaysOnMarket: 31,
@@ -85,6 +89,7 @@ export const INITIAL_AGENTS: Agent[] = [
     rating: 4.6,
     reviewCount: 29,
     areasServed: ['Bayview Ridge', 'Marina Heights', 'Sunset Bay'],
+    specialties: ['Vacation Homes', 'Short-term Rentals', 'Coastal Estates'],
     performance: {
       propertiesSold: 38,
       avgDaysOnMarket: 28,

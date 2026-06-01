@@ -393,14 +393,14 @@ export default function AdminPanel({
                         onClick={() => {
                           onVerifyAgent(ag.id);
                           showFeedback(
-                            `Verification badge granted to ${ag.name}!`,
+                            `Documents reviewed. Verification badge granted to ${ag.name}!`,
                           );
                         }}
-                        className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-1"
+                        className={`bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-1 ${ag.verificationStatus === "pending" ? "animate-pulse ring-2 ring-blue-500/50 ring-offset-2 ring-offset-slate-950 bg-indigo-600 hover:bg-indigo-500" : ""}`}
                         id={`verify-badge-btn-${ag.id}`}
                       >
-                        <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
-                        <span>Verify Broker</span>
+                        <Sparkles className="w-3 h-3 text-amber-300" />
+                        <span>{ag.verificationStatus === "pending" ? "Review & Verify" : "Verify Broker"}</span>
                       </button>
                     ) : (
                       <span className="text-[10px] text-slate-500 font-mono uppercase font-bold pr-2 flex items-center gap-1">

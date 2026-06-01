@@ -23,6 +23,9 @@ import AdminPanel from "./components/AdminPanel";
 import PropertyDetailModal from "./components/PropertyDetailModal";
 import AuthModal from "./components/AuthModal";
 import SupportChatbot from "./components/SupportChatbot";
+import UserProfileModal from "./components/UserProfileModal";
+import AgentDirectory from "./components/AgentDirectory";
+import AgentProfileModal from "./components/AgentProfileModal";
 
 // Icons
 import {
@@ -196,7 +199,7 @@ export default function App() {
   // UI state managers
   const [showAdvancedFilters, setShowAdvancedFilters] =
     useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<"all" | "grid" | "map" | "inbox">("all"); // For discovery pane
+  const [viewMode, setViewMode] = useState<"all" | "grid" | "map" | "inbox" | "agents">("all"); // For discovery pane
   const [customSearchName, setCustomSearchName] = useState<string>("");
   const [activePromotedPropertyId, setActivePromotedPropertyId] = useState<
     string | null
@@ -208,6 +211,10 @@ export default function App() {
   const [showPromoteFeedback, setShowPromoteFeedback] = useState<string | null>(
     null,
   );
+
+  // New states for User Profiles & Agents
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedAgentProfileId, setSelectedAgentProfileId] = useState<string | null>(null);
 
   // Edit / Creation listing modes
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -670,8 +677,11 @@ export default function App() {
 
   const handleVerifyAgentBadge = (agentId: string) => {
     setAgents((prev) =>
-      prev.map((a) => (a.id === agentId ? { ...a, isVerified: true } : a)),
+      prev.map((a) => (a.id === agentId ? { ...a, isVerified: true, verificationStatus: "verified" } : a)),
     );
+    if (userProfile.role === "agent" || userProfile.role === "owner") {
+      setUserProfile((prev) => ({ ...prev, verificationStatus: "verified" }));
+    }
   };
 
   const handleModeratorReportAction = (
@@ -974,6 +984,17 @@ export default function App() {
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Log Out
+              </button>
+            )}
+            
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-300 bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5" />
+                My Profile
               </button>
             )}
           </div>
@@ -1438,6 +1459,14 @@ export default function App() {
                       <Mail className="w-3.5 h-3.5 text-blue-400" />
                       <span>Inbox</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("agents")}
+                      className={`p-1.5 px-2.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${viewMode === "agents" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-200"}`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Agencies</span>
+                    </button>
                   </div>
 
                   <button
@@ -1573,6 +1602,36 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* INBOX VIEW MODE */}
+            {viewMode === "inbox" && (
+              <div className="animate-entrance-3d-effect pt-4">
+                <h3 className="font-bold text-white text-lg mb-4">My Messages & Inquiries</h3>
+                <InboxChat
+                  inquiries={inquiries.filter((inq) => {
+                    if (userProfile.role === "seeker") return inq.seekerName === userProfile.name || inq.seekerEmail === userProfile.email;
+                    if (userProfile.role === "owner") {
+                      const ownerPropertyIds = properties.filter(p => p.agentId === userProfile.name).map(p => p.id);
+                      return ownerPropertyIds.includes(inq.propertyId);
+                    }
+                    return false;
+                  })}
+                  properties={properties}
+                  onUpdateInquiry={handleUpdateInquiry}
+                  currentRole={userProfile.role === "owner" ? "agent" : "seeker"}
+                />
+              </div>
+            )}
+
+            {/* AGENT DIRECTORY VIEW MODE */}
+            {viewMode === "agents" && (
+              <div className="pt-4">
+                <AgentDirectory
+                  agents={agents}
+                  onSelectAgent={(id) => setSelectedAgentProfileId(id)}
+                />
+              </div>
+            )}
 
             {/* Split layout: Discovery Catalog or Map */}
             {viewMode === "all" ? (
@@ -2583,9 +2642,10 @@ export default function App() {
 
             {/* CRM Cockpit & Inbox (LD-01) */}
             <div className="space-y-3" id="crm-desktop-nest">
-              <span className="text-xs text-blue-400 font-mono uppercase tracking-widest block font-bold">
+              <span className="text-xs text-blue-400 uppercase tracking-widest block font-bold">
                 Broker leads CRM Cockpit
               </span>
+              
               <InboxChat
                 inquiries={inquiries}
                 properties={properties}
@@ -2784,15 +2844,27 @@ export default function App() {
           );
         })()}
 
-      {/* Auth Modal overlay (US-08) */}
-      {isAuthModalOpen && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          initialMode={authFormMode}
-          onClose={() => setIsAuthModalOpen(false)}
-          onAuthenticate={handleAuthenticateUser}
-        />
-      )}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthenticate={handleAuthenticateUser}
+        initialMode={authFormMode}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userProfile={userProfile}
+        onUpdateProfile={(updated) => setUserProfile({ ...userProfile, ...updated })}
+      />
+
+      <AgentProfileModal
+        isOpen={selectedAgentProfileId !== null}
+        onClose={() => setSelectedAgentProfileId(null)}
+        agent={agents.find((a) => a.id === selectedAgentProfileId) || null}
+        properties={properties}
+        onSelectProperty={(id) => triggerPropertyDetail(id)}
+      />
 
       {/* Support Chatbot Floating Agent (US-09) */}
       <SupportChatbot
