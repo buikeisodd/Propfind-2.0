@@ -92,3 +92,11 @@ input, select, textarea {
 html, body {
   background-color: #020617; /* High-contrast theme background */
 }
+/* Light mode override via CSS filter for quick toggling */
+.light-theme-override {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #fdfdfd;
+}
+.light-theme-override img, .light-theme-override video, .light-theme-override .bg-blue-600 {
+  filter: invert(1) hue-rotate(180deg);
+}

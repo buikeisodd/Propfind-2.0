@@ -50,6 +50,9 @@ import {
   RotateCcw,
   X,
   MapPin,
+  LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 export default function App() {
@@ -92,6 +95,18 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<
     "seeker" | "owner" | "agent" | "admin"
   >("seeker");
+
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+
+  // Apply theme to document
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("light-theme-override");
+    } else {
+      document.documentElement.classList.add("light-theme-override");
+    }
+  }, [isDarkMode]);
 
   // Secure locked Staff portal password terminal challenge variables (AD-02)
   const [isAdminLockScreenVisible, setIsAdminLockScreenVisible] =
@@ -181,7 +196,7 @@ export default function App() {
   // UI state managers
   const [showAdvancedFilters, setShowAdvancedFilters] =
     useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<"all" | "grid" | "map">("all"); // For discovery pane
+  const [viewMode, setViewMode] = useState<"all" | "grid" | "map" | "inbox">("all"); // For discovery pane
   const [customSearchName, setCustomSearchName] = useState<string>("");
   const [activePromotedPropertyId, setActivePromotedPropertyId] = useState<
     string | null
@@ -913,10 +928,19 @@ export default function App() {
               <button
                 key={p.role}
                 onClick={() => {
-                  setCurrentRole(p.role as any);
-                  // Auto cancel creating modes to not pollute screens
-                  setIsCreatingListing(false);
-                  setEditingProperty(null);
+                  if (
+                    (p.role === "owner" || p.role === "agent") &&
+                    (!isAuthenticated || userProfile.role !== p.role)
+                  ) {
+                    setAuthIntendedAction(`switch_role:${p.role}`);
+                    setAuthFormMode("signin");
+                    setIsAuthModalOpen(true);
+                  } else {
+                    setCurrentRole(p.role as any);
+                    // Auto cancel creating modes to not pollute screens
+                    setIsCreatingListing(false);
+                    setEditingProperty(null);
+                  }
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-tight transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                   currentRole === p.role
@@ -929,6 +953,29 @@ export default function App() {
                 <span>{p.label}</span>
               </button>
             ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-yellow-400 hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+            </button>
+            {isAuthenticated && (
+              <button
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  setCurrentRole("seeker");
+                  setUserProfile({ ...userProfile, role: "seeker" });
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-400 bg-slate-900 border border-red-900/50 hover:bg-red-950/40 transition-colors shadow-sm cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Log Out
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -1375,6 +1422,21 @@ export default function App() {
                     >
                       <Map className="w-3.5 h-3.5" />
                       <span>Map Only</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          setAuthFormMode("signin");
+                          setIsAuthModalOpen(true);
+                        } else {
+                          setViewMode("inbox");
+                        }
+                      }}
+                      className={`p-1.5 px-2.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all ${viewMode === "inbox" ? "bg-blue-900/40 text-blue-300 border border-blue-500/30" : "text-slate-500 hover:text-slate-200 border border-transparent"}`}
+                    >
+                      <Mail className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Inbox</span>
                     </button>
                   </div>
 
