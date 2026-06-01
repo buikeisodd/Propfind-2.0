@@ -8,6 +8,7 @@ interface AgentProfileModalProps {
   agent: Agent | null;
   properties: Property[];
   onSelectProperty: (propertyId: string) => void;
+  onMessageAgent: (agentId: string) => void;
 }
 
 export default function AgentProfileModal({
@@ -16,6 +17,7 @@ export default function AgentProfileModal({
   agent,
   properties,
   onSelectProperty,
+  onMessageAgent,
 }: AgentProfileModalProps) {
   if (!isOpen || !agent) return null;
 
@@ -44,11 +46,11 @@ export default function AgentProfileModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-4xl h-[90vh] md:h-[80vh] flex flex-col relative overflow-hidden shadow-2xl animate-entrance-3d-effect">
+    <div className="fixed inset-0 z-[60] bg-slate-950/85 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col relative overflow-hidden shadow-2xl animate-entrance-3d-effect my-4">
         
         {/* Header Cover */}
-        <div className="h-32 md:h-48 bg-gradient-to-r from-blue-900/40 via-slate-900 to-slate-950 relative shrink-0">
+        <div className="h-24 md:h-36 bg-gradient-to-r from-blue-900/40 via-slate-900 to-slate-950 relative shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full bg-slate-950/50 hover:bg-slate-900 border border-slate-800/50 text-slate-300 hover:text-white transition-colors z-10"
@@ -59,13 +61,13 @@ export default function AgentProfileModal({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pb-8">
-          <div className="px-6 md:px-10 -mt-16 md:-mt-24 relative z-10">
+          <div className="px-5 md:px-8 -mt-12 md:-mt-16 relative z-10">
             {/* Profile Info Header */}
             <div className="flex flex-col md:flex-row md:items-end gap-6 mb-8">
               <img
                 src={agent.photo}
                 alt={agent.name}
-                className="w-32 h-32 md:w-48 md:h-48 rounded-2xl border-4 border-slate-950 object-cover shadow-xl bg-slate-900"
+                className="w-28 h-28 md:w-36 md:h-36 rounded-2xl border-4 border-slate-950 object-cover shadow-xl bg-slate-900"
               />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-3">
@@ -99,7 +101,11 @@ export default function AgentProfileModal({
                 <button className="flex-1 md:flex-none p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer">
                   <Phone className="w-5 h-5" />
                 </button>
-                <button className="flex-1 md:flex-none p-3 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-900/20 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => onMessageAgent(agent.id)}
+                  className="flex-1 md:flex-none p-3 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-900/20 cursor-pointer"
+                >
                   <Mail className="w-5 h-5" />
                   <span className="ml-2 text-sm font-bold font-mono">Message</span>
                 </button>

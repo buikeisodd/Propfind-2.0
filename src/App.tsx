@@ -329,6 +329,100 @@ export default function App() {
     );
   };
 
+  const getAccountAgentIds = (profile: UserProfile = userProfile) =>
+    agents
+      .filter(
+        (agent) =>
+          agent.email === profile.email ||
+          agent.name === profile.name ||
+          (profile.role === "owner" &&
+            agent.agency === "Private Owner / Homeowner" &&
+            agent.name === profile.name),
+      )
+      .map((agent) => agent.id);
+
+  const getVisibleInboxInquiries = (profile: UserProfile = userProfile) => {
+    if (profile.role === "seeker") {
+      return inquiries.filter(
+        (inq) =>
+          inq.seekerName === profile.name || inq.seekerEmail === profile.email,
+      );
+    }
+
+    if (profile.role === "owner" || profile.role === "agent") {
+      const accountAgentIds = getAccountAgentIds(profile);
+      return inquiries.filter((inq) =>
+        properties.some(
+          (property) =>
+            property.id === inq.propertyId &&
+            accountAgentIds.includes(property.agentId),
+        ),
+      );
+    }
+
+    return inquiries;
+  };
+
+  const openAgentConversation = (
+    agentId: string,
+    seeker: Pick<UserProfile, "name" | "email" | "phone"> = userProfile,
+  ) => {
+    const agent = agents.find((item) => item.id === agentId);
+    const targetProperty =
+      properties.find((item) => item.agentId === agentId && item.status === "active") ||
+      properties.find((item) => item.agentId === agentId);
+
+    if (!agent || !targetProperty) {
+      alert("This agency does not have an active listing available for inbox messaging yet.");
+      return;
+    }
+
+    const message = `Hi ${agent.name}, I would like to discuss ${targetProperty.title}.`;
+    const newInquiry: Inquiry = {
+      id: `inq-${Date.now()}`,
+      propertyId: targetProperty.id,
+      propertyTitle: targetProperty.title,
+      propertyPhoto: targetProperty.photos[0],
+      seekerName: seeker.name,
+      seekerEmail: seeker.email,
+      seekerPhone: seeker.phone || "",
+      message,
+      status: "new",
+      createdDate: new Date().toISOString().split("T")[0],
+      notes: [],
+      chatHistory: [
+        {
+          sender: "seeker",
+          message,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    setInquiries((prev) => [newInquiry, ...prev]);
+    setProperties((prev) =>
+      prev.map((property) =>
+        property.id === targetProperty.id
+          ? { ...property, inquiryCount: property.inquiryCount + 1 }
+          : property,
+      ),
+    );
+    setSelectedAgentProfileId(null);
+    setCurrentRole("seeker");
+    setViewMode("inbox");
+  };
+
+  const handleMessageAgent = (agentId: string) => {
+    if (!isAuthenticated || userProfile.role !== "seeker") {
+      setAuthIntendedAction(`message_agent:${agentId}`);
+      setAuthFormMode("signin");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    openAgentConversation(agentId);
+  };
+
   // Dispatch live authentication and complete deferred tasks (US-08)
   const handleAuthenticateUser = (userData: {
     name: string;
@@ -336,13 +430,15 @@ export default function App() {
     age: number;
     role: "seeker" | "owner" | "agent" | "admin";
   }) => {
-    setIsAuthenticated(true);
-    setUserProfile({
+    const nextProfile: UserProfile = {
       ...userProfile,
       name: userData.name,
       email: userData.email,
       role: userData.role === "admin" ? "seeker" : userData.role,
-    });
+    };
+
+    setIsAuthenticated(true);
+    setUserProfile(nextProfile);
 
     // Set appropriate hot-swap workspace
     setCurrentRole(userData.role === "admin" ? "seeker" : userData.role);
@@ -384,6 +480,16 @@ export default function App() {
       } else if (authIntendedAction === "list") {
         setIsCreatingListing(true);
         alert(`Welcome! Your landlord listing studio is now active.`);
+      } else if (authIntendedAction.startsWith("switch_role:")) {
+        setIsCreatingListing(false);
+        setEditingProperty(null);
+      } else if (authIntendedAction.startsWith("message_agent:")) {
+        if (nextProfile.role !== "seeker") {
+          alert("Please authenticate as a Property Seeker to message agencies or private owners.");
+        } else {
+          const agentId = authIntendedAction.replace("message_agent:", "");
+          openAgentConversation(agentId, nextProfile);
+        }
       }
       setAuthIntendedAction(null);
     }
@@ -938,15 +1044,21 @@ export default function App() {
               <button
                 key={p.role}
                 onClick={() => {
-                  if (
-                    (p.role === "owner" || p.role === "agent") &&
-                    (!isAuthenticated || userProfile.role !== p.role)
-                  ) {
+                  const requestedRole = p.role as
+                    | "seeker"
+                    | "owner"
+                    | "agent"
+                    | "admin";
+                  const needsRoleAuth =
+                    requestedRole !== currentRole &&
+                    (!isAuthenticated || userProfile.role !== requestedRole);
+
+                  if (needsRoleAuth) {
                     setAuthIntendedAction(`switch_role:${p.role}`);
                     setAuthFormMode("signin");
                     setIsAuthModalOpen(true);
                   } else {
-                    setCurrentRole(p.role as any);
+                    setCurrentRole(requestedRole);
                     // Auto cancel creating modes to not pollute screens
                     setIsCreatingListing(false);
                     setEditingProperty(null);
@@ -1608,17 +1720,10 @@ export default function App() {
               <div className="animate-entrance-3d-effect pt-4">
                 <h3 className="font-bold text-white text-lg mb-4">My Messages & Inquiries</h3>
                 <InboxChat
-                  inquiries={inquiries.filter((inq) => {
-                    if (userProfile.role === "seeker") return inq.seekerName === userProfile.name || inq.seekerEmail === userProfile.email;
-                    if (userProfile.role === "owner") {
-                      const ownerPropertyIds = properties.filter(p => p.agentId === userProfile.name).map(p => p.id);
-                      return ownerPropertyIds.includes(inq.propertyId);
-                    }
-                    return false;
-                  })}
+                  inquiries={getVisibleInboxInquiries()}
                   properties={properties}
                   onUpdateInquiry={handleUpdateInquiry}
-                  currentRole={userProfile.role === "owner" ? "agent" : "seeker"}
+                  currentRole={userProfile.role === "seeker" ? "seeker" : userProfile.role === "owner" ? "owner" : "agent"}
                 />
               </div>
             )}
@@ -1777,7 +1882,7 @@ export default function App() {
 
                               <button
                                 onClick={() => handleToggleFavorite(prop.id)}
-                                className={`absolute top-2.5 right-2.5 p-1.5 rounded-full border shadow transition-all ${
+                                className={`absolute top-2.5 right-2.5 px-2.5 py-1.5 rounded-full border shadow transition-all flex items-center gap-1 text-[10px] font-bold ${
                                   isSaved
                                     ? "bg-rose-600 text-white border-rose-500 scale-105"
                                     : "bg-slate-955/80 hover:bg-slate-950 text-slate-300 border-slate-800"
@@ -1787,6 +1892,7 @@ export default function App() {
                                 <Heart
                                   className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
                                 />
+                                <span>{isSaved ? "Saved" : "Save"}</span>
                               </button>
 
                               <span className="absolute bottom-2.5 right-2.5 bg-slate-950/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-blue-300 font-bold font-mono text-xs shadow-lg">
@@ -2043,7 +2149,7 @@ export default function App() {
                             {/* Bookmarks float check */}
                             <button
                               onClick={() => handleToggleFavorite(prop.id)}
-                              className={`absolute top-2.5 right-2.5 p-1.5 rounded-full border shadow transition-all ${
+                              className={`absolute top-2.5 right-2.5 px-2.5 py-1.5 rounded-full border shadow transition-all flex items-center gap-1 text-[10px] font-bold ${
                                 isSaved
                                   ? "bg-rose-600 text-white border-rose-500 scale-105"
                                   : "bg-slate-950/80 hover:bg-slate-950 text-slate-300 border-slate-800"
@@ -2054,6 +2160,7 @@ export default function App() {
                               <Heart
                                 className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`}
                               />
+                              <span>{isSaved ? "Saved" : "Save"}</span>
                             </button>
 
                             {/* Sizing pricing parameters */}
@@ -2647,7 +2754,7 @@ export default function App() {
               </span>
               
               <InboxChat
-                inquiries={inquiries}
+                inquiries={getVisibleInboxInquiries()}
                 properties={properties}
                 onUpdateInquiry={handleUpdateInquiry}
                 currentRole="agent"
@@ -2864,6 +2971,7 @@ export default function App() {
         agent={agents.find((a) => a.id === selectedAgentProfileId) || null}
         properties={properties}
         onSelectProperty={(id) => triggerPropertyDetail(id)}
+        onMessageAgent={handleMessageAgent}
       />
 
       {/* Support Chatbot Floating Agent (US-09) */}

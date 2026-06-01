@@ -219,7 +219,7 @@ export default function PropertyDetailModal({
                 {/* Heart Saved property */}
                 <button
                   onClick={() => onToggleFavorite(property.id)}
-                  className={`p-2 rounded-full border shadow transition-colors ${
+                  className={`px-3 py-2 rounded-full border shadow transition-colors flex items-center gap-1.5 text-[10px] font-bold ${
                     isFavorited
                       ? "bg-rose-600 border-rose-500 text-white"
                       : "bg-slate-950/80 hover:bg-slate-950 border-slate-800 text-slate-300"
@@ -230,6 +230,7 @@ export default function PropertyDetailModal({
                   <Heart
                     className={`w-4 h-4 ${isFavorited ? "fill-current" : ""}`}
                   />
+                  <span>{isFavorited ? "Saved" : "Save"}</span>
                 </button>
               </div>
             </div>
