@@ -943,8 +943,8 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
               <span className="text-slate-300">
-                Guest Sandbox Exploration. Secret Auth Passport is requested
-                to record favorites, list private properties, or schedule tours.
+                Guest Sandbox Exploration. Secret Auth Passport is requested to
+                record favorites, list private properties, or schedule tours.
               </span>
             </div>
             <button
@@ -1054,10 +1054,7 @@ export default function App() {
                   className="mt-3 p-3 bg-slate-950/70 rounded-xl border border-slate-850 text-xs text-slate-300 space-y-1.5"
                   id="demographics-playbook-widget"
                 >
-                  <div className="flex items-center gap-1">
-                    
-                    
-                  </div>
+                  <div className="flex items-center gap-1"></div>
                   {isAuthenticated ? (
                     (() => {
                       // Custom seeker age is typically around 34
@@ -1100,9 +1097,9 @@ export default function App() {
                     })()
                   ) : (
                     <p className="text-[11px] text-slate-400 font-sans italic">
-                      Welcome, guest seeker! Sign in to automatically match
-                      your account demographics with county-certified real
-                      estate suggestions.
+                      Welcome, guest seeker! Sign in to automatically match your
+                      account demographics with county-certified real estate
+                      suggestions.
                     </p>
                   )}
                 </div>
@@ -1193,7 +1190,6 @@ export default function App() {
                     }}
                     className="flex-1 py-2 rounded-xl bg-slate-950 hover:bg-slate-850 text-[11px] text-slate-300 border border-slate-850 transition-colors font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    
                     <span>
                       View Compare Matrix ({comparisonPropertyIds.length})
                     </span>
@@ -1307,6 +1303,7 @@ export default function App() {
                           key={t.tag}
                           type="button"
                           onClick={() => setSelectedListingType(t.tag)}
+                          style={{padding:10}}
                           className={`flex-1 text-center py-1.5 text-[11px] font-semibold rounded-md transition-all uppercase cursor-pointer ${
                             selectedListingType === t.tag
                               ? "bg-blue-600 text-white font-bold"
