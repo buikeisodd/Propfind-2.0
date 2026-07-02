@@ -62,6 +62,7 @@ export default function App() {
   // Master Databases in Client State
   const [properties, setProperties] = useState<Property[]>(INITIAL_PROPERTIES);
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
+  const [currentUserAgentId, setCurrentUserAgentId] = useState<string | undefined>(undefined);
   const [inquiries, setInquiries] = useState<Inquiry[]>(INITIAL_INQUIRIES);
   const [reportedListings, setReportedListings] = useState<ReportedListing[]>(
     INITIAL_REPORTED_LISTINGS,
@@ -341,6 +342,55 @@ export default function App() {
       )
       .map((agent) => agent.id);
 
+  // Guarantees that every "owner" (Private Seller) or "agent" (Broker) account has a
+  // matching Agent record so their listings can be attributed to them, and so
+  // inquiries/messages from seekers correctly route back into their own Inbox.
+  // Without this, new Private Seller signups had no Agent record, so listings they
+  // created fell back to a default agent and their replies never surfaced.
+  const ensureAgentRecordForProfile = (userData: {
+    name: string;
+    email: string;
+    role: "seeker" | "owner" | "agent" | "admin";
+  }): string | undefined => {
+    if (userData.role !== "owner" && userData.role !== "agent") return undefined;
+
+    const existing = agents.find(
+      (a) => a.email === userData.email || a.name === userData.name,
+    );
+    if (existing) return existing.id;
+
+    const newAgent: Agent = {
+      id: `${userData.role}-${Date.now()}`,
+      name: userData.name,
+      photo:
+        "https://images.unsplash.com/photo-1633332755192-727a05c4013d?auto=format&fit=crop&q=80&w=400",
+      bio:
+        userData.role === "owner"
+          ? `${userData.name} is a verified private landlord and homeowner managing listings directly on PropFind.`
+          : `${userData.name} is a licensed real estate broker on PropFind.`,
+      agency:
+        userData.role === "owner"
+          ? "Private Owner / Homeowner"
+          : "Independent Agent",
+      email: userData.email,
+      phone: "",
+      isVerified: false,
+      verificationStatus: "unverified",
+      rating: 0,
+      reviewCount: 0,
+      areasServed: [],
+      specialties: [],
+      performance: {
+        propertiesSold: 0,
+        avgDaysOnMarket: 0,
+        responseRate: 100,
+      },
+    };
+
+    setAgents((prev) => [...prev, newAgent]);
+    return newAgent.id;
+  };
+
   const getVisibleInboxInquiries = (profile: UserProfile = userProfile) => {
     if (profile.role === "seeker") {
       return inquiries.filter(
@@ -442,6 +492,11 @@ export default function App() {
 
     // Set appropriate hot-swap workspace
     setCurrentRole(userData.role === "admin" ? "seeker" : userData.role);
+
+    // Private Sellers and Brokers need a linked Agent record so listings they
+    // publish, and messages seekers send about those listings, route back to
+    // their own Inbox instead of vanishing.
+    setCurrentUserAgentId(ensureAgentRecordForProfile(userData));
 
     // Solve deferred pending user triggers
     if (authIntendedAction) {
@@ -2399,6 +2454,7 @@ export default function App() {
               <div id="listing-wizard-container">
                 <ListingForm
                   agents={agents}
+                  currentAgentId={currentUserAgentId}
                   onPublish={handlePostProperty}
                   editingProperty={editingProperty}
                   onCancel={() => {
