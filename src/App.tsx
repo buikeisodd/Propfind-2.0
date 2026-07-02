@@ -2449,6 +2449,20 @@ export default function App() {
               </div>
             </div>
 
+            {/* Seller Messages & Inquiries Inbox (parity with Broker CRM Cockpit) */}
+            <div className="space-y-3" id="owner-inbox-nest">
+              <span className="text-xs text-blue-400 uppercase tracking-widest block font-bold">
+                Seeker Messages &amp; Inquiries
+              </span>
+
+              <InboxChat
+                inquiries={getVisibleInboxInquiries()}
+                properties={properties}
+                onUpdateInquiry={handleUpdateInquiry}
+                currentRole="owner"
+              />
+            </div>
+
             {/* Display Creation Form Wizard if toggled */}
             {isCreatingListing || editingProperty ? (
               <div id="listing-wizard-container">
