@@ -20,6 +20,7 @@ interface AuthModalProps {
     role: "seeker" | "owner" | "agent" | "admin";
   }) => void;
   initialMode?: "signin" | "signup";
+  initialRole?: "seeker" | "owner" | "agent";
 }
 
 const DUMMY_SHORTCUTS = [
@@ -51,6 +52,7 @@ export default function AuthModal({
   onClose,
   onAuthenticate,
   initialMode = "signin",
+  initialRole,
 }: AuthModalProps) {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">(initialMode);
   const [formData, setFormData] = useState({
@@ -65,6 +67,16 @@ export default function AuthModal({
     agreeAntiScam: false,
   });
   const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      if (initialRole) {
+        setFormData((prev) => ({ ...prev, role: initialRole }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -289,6 +301,26 @@ export default function AuthModal({
             </div>
           )}
 
+          {mode !== "forgot-password" && (
+            <div>
+              <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">
+                Sign In As
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) =>
+                  setFormData({ ...formData, role: e.target.value as any })
+                }
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl text-xs px-3 py-2 focus:outline-none focus:border-blue-500 text-white cursor-pointer"
+                id="auth-role-select"
+              >
+                <option value="seeker">Property Seeker</option>
+                <option value="owner">Private Owner / Seller</option>
+                <option value="agent">Licensed Broker Agent</option>
+              </select>
+            </div>
+          )}
+
           {mode === "forgot-password" && (
             <div className="space-y-2 pt-2 border-t border-slate-850">
               <label className="block text-[10px] text-slate-400 font-bold uppercase mb-0.5">
@@ -329,7 +361,7 @@ export default function AuthModal({
               className="space-y-4 pt-1 border-t border-slate-850 mt-1"
               id="signup-enhanced-security-fields"
             >
-              <div className="grid grid-cols-2 gap-3" id="signup-role-age-grid">
+              <div id="signup-role-age-grid">
                 <div>
                   <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">
                     Your Age ({formData.age})
@@ -347,23 +379,6 @@ export default function AuthModal({
                   <span className="text-[9px] text-slate-500 font-mono italic mt-1 block">
                     Demographic checks apply
                   </span>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">
-                    Operational Role
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value as any })
-                    }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl text-xs px-2 py-1.5 focus:outline-none focus:border-blue-500 text-white cursor-pointer"
-                  >
-                    <option value="seeker">Property Seeker</option>
-                    <option value="owner">Private Owner / Seller</option>
-                    <option value="agent">Licensed Broker Agent</option>
-                  </select>
                 </div>
               </div>
 

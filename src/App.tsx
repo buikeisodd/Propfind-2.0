@@ -413,6 +413,16 @@ export default function App() {
     return inquiries;
   };
 
+  // Returns only the properties owned/managed by the given account (owner or
+  // agent). Used to scope "My Listings" management panels so a seller or
+  // broker can only see/edit/delete/promote their own inventory, not every
+  // listing on the platform.
+  const getMyProperties = (profile: UserProfile = userProfile) => {
+    if (profile.role !== "owner" && profile.role !== "agent") return [];
+    const accountAgentIds = getAccountAgentIds(profile);
+    return properties.filter((p) => accountAgentIds.includes(p.agentId));
+  };
+
   const openAgentConversation = (
     agentId: string,
     seeker: Pick<UserProfile, "name" | "email" | "phone"> = userProfile,
@@ -480,23 +490,40 @@ export default function App() {
     age: number;
     role: "seeker" | "owner" | "agent" | "admin";
   }) => {
+    // CRITICAL: the sign-in form has no role selector (only sign-up does), so
+    // when a user clicks a Workspace persona (e.g. "Private Seller") the auth
+    // modal opens in sign-in mode and userData.role would silently default to
+    // "seeker" regardless of intent. When a role switch was requested, that
+    // intended role is authoritative over whatever the sign-in form submitted.
+    const intendedSwitchRole = authIntendedAction?.startsWith("switch_role:")
+      ? (authIntendedAction.replace("switch_role:", "") as
+          | "seeker"
+          | "owner"
+          | "agent"
+          | "admin")
+      : null;
+    const resolvedUserData = {
+      ...userData,
+      role: intendedSwitchRole ?? userData.role,
+    };
+
     const nextProfile: UserProfile = {
       ...userProfile,
-      name: userData.name,
-      email: userData.email,
-      role: userData.role === "admin" ? "seeker" : userData.role,
+      name: resolvedUserData.name,
+      email: resolvedUserData.email,
+      role: resolvedUserData.role === "admin" ? "seeker" : resolvedUserData.role,
     };
 
     setIsAuthenticated(true);
     setUserProfile(nextProfile);
 
     // Set appropriate hot-swap workspace
-    setCurrentRole(userData.role === "admin" ? "seeker" : userData.role);
+    setCurrentRole(resolvedUserData.role === "admin" ? "seeker" : resolvedUserData.role);
 
     // Private Sellers and Brokers need a linked Agent record so listings they
     // publish, and messages seekers send about those listings, route back to
     // their own Inbox instead of vanishing.
-    setCurrentUserAgentId(ensureAgentRecordForProfile(userData));
+    setCurrentUserAgentId(ensureAgentRecordForProfile(resolvedUserData));
 
     // Solve deferred pending user triggers
     if (authIntendedAction) {
@@ -918,6 +945,10 @@ export default function App() {
   };
 
   // --- Filtering & Searching Core Algorithm ---
+  // Scoped to the signed-in owner/agent's own inventory (see getMyProperties).
+  const myProperties = getMyProperties();
+  const myAgentRecord = agents.find((a) => getAccountAgentIds().includes(a.id));
+
   const filteredProperties = properties.filter((prop) => {
     // 1. Lasso polygon boundaries if set (SR-02, US-01-6)
     if (lassoFilteredIds !== null && !lassoFilteredIds.includes(prop.id)) {
@@ -2498,10 +2529,10 @@ export default function App() {
                         Platform Page Views
                       </span>
                       <p className="text-white text-2xl font-black mt-1">
-                        1,910 views
-                      </p>
-                      <p className="text-[10px] text-emerald-400 mt-1 font-mono">
-                        +12.4% vs last week
+                        {myProperties
+                          .reduce((sum, p) => sum + p.views, 0)
+                          .toLocaleString()}{" "}
+                        views
                       </p>
                     </div>
                     <div className="p-4 bg-slate-950 rounded-xl border border-slate-850">
@@ -2509,10 +2540,10 @@ export default function App() {
                         Total client saves
                       </span>
                       <p className="text-white text-2xl font-black mt-1">
-                        362 bookmarked
-                      </p>
-                      <p className="text-[10px] text-blue-400 mt-1 font-mono">
-                        Average item: 42 saves
+                        {myProperties
+                          .reduce((sum, p) => sum + p.saves, 0)
+                          .toLocaleString()}{" "}
+                        bookmarked
                       </p>
                     </div>
                     <div className="p-4 bg-slate-950 rounded-xl border border-slate-850">
@@ -2520,10 +2551,7 @@ export default function App() {
                         Pending tour Requests
                       </span>
                       <p className="text-white text-2xl font-black mt-1">
-                        {inquiries.length} requests
-                      </p>
-                      <p className="text-[10px] text-amber-500 mt-1 font-mono">
-                        100% Client Response rate
+                        {getVisibleInboxInquiries().length} requests
                       </p>
                     </div>
                   </div>
@@ -2532,15 +2560,24 @@ export default function App() {
                 {/* Subheading client listings catalog */}
                 <div className="space-y-4" id="owned-listings-catalog-grid">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
-                    My properties listings ({properties.length})
+                    My properties listings ({myProperties.length})
                   </h4>
 
                   <div
                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     id="owned-cards-grid"
                   >
-                    {properties.map((p) => (
-                      <div
+                    {myProperties.length === 0 ? (
+                      <div className="col-span-full text-center py-10 text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
+                        You haven&apos;t listed any properties yet. Click{" "}
+                        <strong className="text-slate-300">
+                          &quot;List New Property&quot;
+                        </strong>{" "}
+                        above to get started.
+                      </div>
+                    ) : (
+                      myProperties.map((p) => (
+                        <div
                         key={p.id}
                         className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col md:flex-row justify-between gap-4 hover-perspective-card"
                         id={`owned-item-${p.id}`}
@@ -2642,7 +2679,8 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -2791,7 +2829,7 @@ export default function App() {
                 id="agents-performance-badge-view"
               >
                 <span className="text-[9px] tracking-wider text-slate-500 uppercase font-bold font-mono block">
-                  Aggregate Agency Performance
+                  My Performance
                 </span>
                 <div
                   className="flex gap-4 mt-1 font-mono"
@@ -2802,7 +2840,7 @@ export default function App() {
                       Sold:
                     </span>
                     <strong className="text-white text-xs">
-                      {INITIAL_AGENTS[0].performance.propertiesSold} items
+                      {myAgentRecord?.performance.propertiesSold ?? 0} items
                     </strong>
                   </div>
                   <div>
@@ -2810,7 +2848,7 @@ export default function App() {
                       Response:
                     </span>
                     <strong className="text-emerald-400 text-xs">
-                      {INITIAL_AGENTS[0].performance.responseRate}%
+                      {myAgentRecord?.performance.responseRate ?? 100}%
                     </strong>
                   </div>
                 </div>
@@ -2942,7 +2980,12 @@ export default function App() {
                   className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                   id="eligible-promo-listings"
                 >
-                  {properties.map((p) => (
+                  {myProperties.length === 0 ? (
+                    <div className="col-span-full text-center py-6 text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
+                      You have no listings under management to promote yet.
+                    </div>
+                  ) : (
+                    myProperties.map((p) => (
                     <div
                       key={p.id}
                       className="p-3 bg-slate-950 rounded-xl border border-slate-850 flex justify-between items-center gap-4"
@@ -2965,7 +3008,8 @@ export default function App() {
                         Boost Spot
                       </button>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -3026,6 +3070,14 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onAuthenticate={handleAuthenticateUser}
         initialMode={authFormMode}
+        initialRole={
+          authIntendedAction?.startsWith("switch_role:")
+            ? (authIntendedAction.replace("switch_role:", "") as
+                | "seeker"
+                | "owner"
+                | "agent")
+            : undefined
+        }
       />
 
       <UserProfileModal
